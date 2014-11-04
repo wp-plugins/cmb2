@@ -36,6 +36,8 @@ class CMB2_Types {
 	 * @param  array  $arguments All arguments passed to the method
 	 */
 	public function __call( $name, $arguments ) {
+		$this->field->peform_param_cb( 'before_field' );
+
 		/**
 		 * Pass non-existent field types through an action
 		 *
@@ -53,6 +55,8 @@ class CMB2_Types {
 		 * @param object $field_type_object  This `CMB2_Types` object
 		 */
 		do_action( "cmb2_render_$name", $this->field, $this->field->escaped_value(), $this->field->object_id, $this->field->object_type, $this );
+
+		$this->field->peform_param_cb( 'after_field' );
 	}
 
 	/**
@@ -115,8 +119,8 @@ class CMB2_Types {
 	 * @return string              Text
 	 */
 	public function _text( $option_key, $fallback ) {
-		$options = (array) $this->field->args( 'options' );
-		return isset( $options[ $option_key ] ) ? $options[ $option_key ] : $fallback;
+		$has_string_param = $this->field->options( $option_key );
+		return $has_string_param ? $has_string_param : $fallback;
 	}
 
 	/**
@@ -169,7 +173,9 @@ class CMB2_Types {
 		$attributes = '';
 		foreach ( $attrs as $attr => $val ) {
 			if ( ! in_array( $attr, (array) $attr_exclude, true ) ) {
-				$attributes .= sprintf( ' %s="%s"', $attr, $val );
+				// if data attribute, use single quote wraps, else double
+				$quotes = false !== stripos( $attr, 'data-' ) ? "'" : '"';
+				$attributes .= sprintf( ' %1$s=%3$s%2$s%3$s', $attr, $val, $quotes );
 			}
 		}
 		return $attributes;
@@ -196,7 +202,7 @@ class CMB2_Types {
 	 */
 	public function concat_options( $args = array(), $method = 'list_input' ) {
 
-		$options     = (array) $this->field->args( 'options' );
+		$options     = (array) $this->field->options();
 		$saved_value = $this->field->escaped_value();
 		$value       = $saved_value ? $saved_value : $this->field->args( 'default' );
 
@@ -482,7 +488,7 @@ class CMB2_Types {
 			'id'      => $this->_id(),
 			'value'   => $this->field->escaped_value( 'stripslashes' ),
 			'desc'    => $this->_desc( true ),
-			'options' => $this->field->args( 'options' ),
+			'options' => $this->field->options(),
 		) ) );
 
 		wp_editor( $value, $id, $options );
@@ -741,13 +747,14 @@ class CMB2_Types {
 
 	public function file_list() {
 		$meta_value = $this->field->escaped_value();
-
-		$name = $this->_name();
+		$name       = $this->_name();
+		$img_size   = $this->field->args( 'preview_size' );
 
 		echo $this->input( array(
 			'type'  => 'hidden',
 			'class' => 'cmb2-upload-file cmb2-upload-list',
 			'size'  => 45, 'desc'  => '', 'value'  => '',
+			'data-previewsize' => is_array( $img_size ) ? '['. implode( ',', $img_size ) .']' : 50,
 		) ),
 		$this->input( array(
 			'type'  => 'button',
@@ -772,7 +779,7 @@ class CMB2_Types {
 				if ( $this->is_valid_img_ext( $fullurl ) ) {
 					echo
 					'<li class="img-status">',
-						wp_get_attachment_image( $id, $this->field->args( 'preview_size' ) ),
+						wp_get_attachment_image( $id, $img_size ),
 						'<p class="cmb2-remove-wrapper"><a href="#" class="cmb2-remove-file-button">'. esc_html( $this->_text( 'remove_image_text', __( 'Remove Image', 'cmb2' ) ) ) .'</a></p>
 						'. $id_input .'
 					</li>';
@@ -796,7 +803,8 @@ class CMB2_Types {
 
 	public function file() {
 		$meta_value = $this->field->escaped_value();
-		$options    = (array) $this->field->args( 'options' );
+		$options    = (array) $this->field->options();
+		$img_size   = $this->field->args( 'preview_size' );
 
 		// if options array and 'url' => false, then hide the url field
 		$input_type = array_key_exists( 'url', $options ) && false === $options['url'] ? 'hidden' : 'text';
@@ -806,6 +814,7 @@ class CMB2_Types {
 			'class' => 'cmb2-upload-file',
 			'size'  => 45,
 			'desc'  => '',
+			'data-previewsize' => is_array( $img_size ) ? '['. implode( ',', $img_size ) .']' : 350,
 		) ),
 		'<input class="cmb2-upload-button button" type="button" value="'. esc_attr( $this->_text( 'add_upload_file_text', __( 'Add or Upload File', 'cmb2' ) ) ) .'" />',
 		$this->_desc( true );
@@ -842,8 +851,18 @@ class CMB2_Types {
 			if ( ! empty( $meta_value ) ) {
 
 				if ( $this->is_valid_img_ext( $meta_value ) ) {
+
 					echo '<div class="img-status">';
-					echo '<img style="max-width: 350px; width: 100%; height: auto;" src="', $meta_value, '" alt="" />';
+					if ( $_id_value ) {
+
+						$image = wp_get_attachment_image( $_id_value, $img_size, null, array( 'class' => 'cmb-file-field-image' ) );
+					} else {
+
+						$size = is_array( $img_size ) ? $img_size[0] : 350;
+						$image = '<img style="max-width: '. absint( $size ) .'px; width: 100%; height: auto;" src="'. $meta_value .'" alt="" />';
+					}
+
+					echo $image;
 					echo '<p class="cmb2-remove-wrapper"><a href="#" class="cmb2-remove-file-button" rel="', $cached_id, '">'. esc_html( $this->_text( 'remove_image_text', __( 'Remove Image', 'cmb2' ) ) ) .'</a></p>';
 					echo '</div>';
 				} else {
@@ -864,7 +883,7 @@ class CMB2_Types {
 			'data-objectid'   => $this->field->object_id,
 			'data-objecttype' => $this->field->object_type
 		) ),
-		'<p class="cmb-spinner spinner" style="display:none;"><img src="'. admin_url( '/images/wpspin_light.gif' ) .'" alt="spinner"/></p>',
+		'<p class="cmb-spinner spinner" style="display:none;"></p>',
 		'<div id="',$this->_id( '-status' ) ,'" class="cmb2-media-status ui-helper-clearfix embed_wrap">';
 
 			if ( $meta_value = $this->field->escaped_value() ) {
