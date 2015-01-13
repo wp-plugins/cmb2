@@ -83,7 +83,7 @@ window.CMB2 = (function(window, document, $, undefined){
 			.on( 'keyup paste focusout', '.cmb2-oembed', cmb.maybeOembed )
 			// Reset titles when removing a row
 			.on( 'cmb2_remove_row', '.cmb-repeatable-group', cmb.resetTitlesAndIterator )
-			.on( 'click', '.cmbhandle', cmb.toggleHandle );
+			.on( 'click', '.cmbhandle, .cmbhandle + .cmbhandle-title', cmb.toggleHandle );
 
 		if ( $repeatGroup.length ) {
 			$repeatGroup
@@ -627,7 +627,7 @@ window.CMB2 = (function(window, document, $, undefined){
 
 			}
 			// handle checkbox swapping
-			else if ( 'checkbox' === $element.attr('type') ) {
+			else if ( 'checkbox' === $element.attr('type') || 'radio' === $element.attr( 'type' )  ) {
 				inputVals[ index ]['$'].prop( 'checked', $element.is(':checked') );
 				$element.prop( 'checked', inputVals[ index ]['val'] );
 			}

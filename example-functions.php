@@ -56,6 +56,7 @@ function cmb2_sample_metaboxes( array $meta_boxes ) {
 		'priority'      => 'high',
 		'show_names'    => true, // Show field names on the left
 		// 'cmb_styles' => false, // false to disable the CMB stylesheet
+		// 'closed'     => true, // true to keep the metabox closed by default
 		'fields'        => array(
 			array(
 				'name'       => __( 'Test Text', 'cmb2' ),
@@ -150,7 +151,7 @@ function cmb2_sample_metaboxes( array $meta_boxes ) {
 				'desc'    => __( 'field description (optional)', 'cmb2' ),
 				'id'      => $prefix . 'test_colorpicker',
 				'type'    => 'colorpicker',
-				'default' => '#ffffff'
+				'default' => '#ffffff',
 			),
 			array(
 				'name' => __( 'Test Text Area', 'cmb2' ),
@@ -417,7 +418,7 @@ function cmb2_sample_metaboxes( array $meta_boxes ) {
 				'desc'    => __( 'field description (optional)', 'cmb2' ),
 				'id'      => $prefix . 'bg_color',
 				'type'    => 'colorpicker',
-				'default' => '#ffffff'
+				'default' => '#ffffff',
 			),
 		)
 	);
